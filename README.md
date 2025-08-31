@@ -53,3 +53,4 @@ make seed        # seed demo data
 - SQLite dev, PostgreSQL prod
 - File uploads stored in `server/uploads/` locally
 - REST JSON with consistent error envelopes
+# learning-system
