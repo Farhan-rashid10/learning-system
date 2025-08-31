@@ -1,0 +1,111 @@
+{
+  "info": {
+    "name": "LMS API",
+    "_postman_id": "lms-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/auth/register",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "auth",
+            "register"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Jane Student\", \"email\": \"jane@student.test\", \"password\": \"Passw0rd!\", \"role\": \"student\"}"
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/auth/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"jane@student.test\", \"password\": \"Passw0rd!\"}"
+        }
+      }
+    },
+    {
+      "name": "List Courses",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base}}/courses",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "courses"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/courses",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "courses"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"Intro to Python\", \"description\": \"Learn Python from scratch\", \"is_published\": true}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:5000/api/v1"
+    }
+  ]
+}
