@@ -1,7 +1,7 @@
 // import { useEffect, useState } from 'react'
 // import api from '../lib/api'
 
-// export default function AdminStudents() {
+// export default function AdminInstructors() {
 //   const [rows, setRows] = useState([])
 //   const [loading, setLoading] = useState(false)
 //   const [error, setError] = useState('')
@@ -9,12 +9,12 @@
 //   async function load() {
 //     try {
 //       setLoading(true)
-//       const { data } = await api.get('/admin/users') // get all
-//       setRows((Array.isArray(data) ? data : []).filter(u => u.role === 'student')) // filter client-side
+//       const { data } = await api.get('/admin/users')
+//       setRows((Array.isArray(data) ? data : []).filter(u => u.role === 'instructor'))
 //       setError('')
 //     } catch (err) {
 //       setRows([])
-//       setError(err?.response?.data?.msg || 'Failed to load students')
+//       setError(err?.response?.data?.msg || 'Failed to load instructors')
 //     } finally {
 //       setLoading(false)
 //     }
@@ -22,26 +22,26 @@
 //   useEffect(() => { load() }, [])
 
 //   async function handleDelete(id, name) {
-//     if (!window.confirm(`Delete student "${name}"? This cannot be undone.`)) return
+//     if (!window.confirm(`Delete instructor "${name}"? This cannot be undone.`)) return
 //     try {
 //       await api.delete(`/admin/users/${id}`) // requires backend DELETE
 //       setRows(prev => prev.filter(r => r.id !== id))
 //     } catch (err) {
-//       setError(err?.response?.data?.msg || 'Error deleting student')
+//       setError(err?.response?.data?.msg || 'Error deleting instructor')
 //     }
 //   }
 
-//   const badge = 'inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700'
+//   const badge = 'inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700'
 
 //   return (
 //     <div className="max-w-6xl">
-//       <h2 className="mb-6 text-2xl font-bold text-gray-900">Admin · Students</h2>
+//       <h2 className="mb-6 text-2xl font-bold text-gray-900">Admin · Instructors</h2>
 
 //       {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
 //       <div className="overflow-hidden rounded-xl bg-white shadow ring-1 ring-gray-200">
 //         <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-3">
-//           <div className="text-sm font-semibold text-gray-900">Students</div>
+//           <div className="text-sm font-semibold text-gray-900">Instructors</div>
 //           <button onClick={load} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Refresh</button>
 //         </div>
 //         <div className="overflow-x-auto">
@@ -58,7 +58,7 @@
 //               {loading ? (
 //                 <tr><td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>Loading…</td></tr>
 //               ) : rows.length === 0 ? (
-//                 <tr><td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>No students found.</td></tr>
+//                 <tr><td className="px-6 py-6 text-sm text-gray-500" colSpan={4}>No instructors found.</td></tr>
 //               ) : (
 //                 rows.map(u => (
 //                   <tr key={u.id}>
@@ -85,41 +85,20 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// src/pages/AdminStudents.jsx
+// src/pages/AdminInstructors.jsx
 import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import api from '../lib/api'
+import api from '../../lib/api'
 
-export default function AdminStudents() {
+export default function AdminInstructors() {
   return (
     <PageShell>
-      <StudentsContent />
+      <InstructorsContent />
     </PageShell>
   )
 }
 
-/* inline layout (same as Users file) */
+/* inline layout (same as other files) */
 function PageShell({ children }) {
   const [open, setOpen] = useState(false)
   const [me, setMe] = useState(null)
@@ -171,8 +150,8 @@ function PageShell({ children }) {
   )
 }
 
-/* students content (filters role=student) */
-function StudentsContent() {
+/* instructors content (filters role=instructor) */
+function InstructorsContent() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -181,11 +160,11 @@ function StudentsContent() {
     try {
       setLoading(true)
       const { data } = await api.get('/admin/users') // get all
-      setRows((Array.isArray(data) ? data : []).filter(u => u.role === 'student'))
+      setRows((Array.isArray(data) ? data : []).filter(u => u.role === 'instructor'))
       setError('')
     } catch (err) {
       setRows([])
-      setError(err?.response?.data?.msg || 'Failed to load students')
+      setError(err?.response?.data?.msg || 'Failed to load instructors')
     } finally {
       setLoading(false)
     }
@@ -193,33 +172,32 @@ function StudentsContent() {
   useEffect(() => { load() }, [])
 
   async function handleDelete(id, name) {
-    if (!window.confirm(`Delete student "${name}"? This cannot be undone.`)) return
+    if (!window.confirm(`Delete instructor "${name}"? This cannot be undone.`)) return
     try {
       await api.delete(`/admin/users/${id}`) // requires DELETE endpoint
       setRows(prev => prev.filter(r => r.id !== id))
     } catch (err) {
-      setError(err?.response?.data?.msg || 'Error deleting student')
+      setError(err?.response?.data?.msg || 'Error deleting instructor')
     }
   }
 
   return (
     <div className="max-w-6xl">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">Admin · Students</h2>
+      <h2 className="mb-6 text-2xl font-bold text-gray-900">Admin · Instructors</h2>
 
       {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="overflow-hidden rounded-xl bg-white shadow ring-1 ring-gray-200">
         <div className="flex items-center justify-between border-b bg-gray-50 px-6 py-3">
-          <div className="text-sm font-semibold text-gray-900">Students</div>
+          <div className="text-sm font-semibold text-gray-900">Instructors</div>
           <button onClick={load} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Refresh</button>
         </div>
-        <Table rows={rows} onDelete={handleDelete} badgeClass="bg-emerald-100 text-emerald-700" />
+        <Table rows={rows} onDelete={handleDelete} badgeClass="bg-blue-100 text-blue-700" />
       </div>
     </div>
   )
 }
 
-/* simple reusable table */
 function Table({ rows, onDelete, badgeClass }) {
   return (
     <div className="overflow-x-auto">

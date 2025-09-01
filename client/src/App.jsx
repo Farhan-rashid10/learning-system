@@ -68,17 +68,21 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/login'
-import AdminUsers from './components/AdminUsers'
-import InstructorCourses from './components/InstructorCourses'
-import CourseAssignments from './components/CourseAssignments'
+import AdminUsers from './components/admin/AdminUsers'
+import InstructorCourses from './components/instructor/InstructorCourses'
 import StudentCourses from './components/StudentCourses'
-import AssignmentSubmit from './components/AssignmentSubmit'
 import ProtectedRoute from './components/protectedRoutes'
-import AdminLayout from './components/AdminLayout'
-import AdminStudents from './components/AdminStudents'
-import AdminInstructors from './components/AdminInstructors'
-import AdminCourses from './components/AdminCourses'
+import AdminLayout from './components/admin/AdminLayout'
+import AdminStudents from './components/admin/AdminStudents'
+import AdminInstructors from './components/admin/AdminInstructors'
+import AdminCourses from './components/admin/AdminCourses'
 import { Toaster, useToast } from "@/components/ui/use-toast"
+import Announcements from './components/instructor/Announcements'
+import People from './components/instructor/People'
+import Grades from './components/instructor/Grades'
+import Home from './components/instructor/Home'
+import CourseDetail from './components/instructor/CourseDetail'
+import Assignments from './components/instructor/AssignmentSubmit'
 
 
 
@@ -114,14 +118,14 @@ element={
 />
 
 
-<Route
+{/* <Route
 path="/courses/:id/assignments"
 element={
 <ProtectedRoute allowed={["instructor", "admin", "student"]}>
 <CourseAssignments />
 </ProtectedRoute>
 }
-/>
+/> */}
 
 
 <Route
@@ -134,14 +138,6 @@ element={
 />
 
 
-<Route
-path="/assignments/:id/submit"
-element={
-<ProtectedRoute allowed={["student"]}>
-<AssignmentSubmit />
-</ProtectedRoute>
-}
-/>
 
  <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
@@ -151,6 +147,15 @@ element={
           <Route path="/admin/instructors" element={<AdminInstructors />} />
           <Route path="/admin/courses" element={<AdminCourses />} />
 
+
+        <Route path="/courses/:id" element={<CourseDetail />}>
+        <Route index element={<Home />} />
+        <Route path="assignments" element={<Assignments />} />
+        <Route path="grades" element={<Grades />} />
+        <Route path="people" element={<People />} />
+       <Route path="announcements" element={<Announcements />} />
+
+        </Route>  
 
 <Route path="*" element={<div>Not found</div>} />
 </Routes>
