@@ -1,13 +1,11 @@
 import os
-from flask import Flask, jsonify, request  # ✅ added request
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-
-# Load environment variables
 load_dotenv()
 
 db = SQLAlchemy()
@@ -17,17 +15,20 @@ jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
 
-    # Configuration
+    # --- Config ---
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///lms.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "change-me")
 
-    # Initialize extensions
+    # --- Init extensions ---
     db.init_app(app)
+
+    # 👇 IMPORTANT: import models so SQLAlchemy registers ALL tables (incl. Module/ModuleItem)
+    from . import models  # do not delete
+
     migrate.init_app(app, db)
     jwt.init_app(app)
 
-    # ✅ Correct indentation + headers
     CORS(
         app,
         resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
@@ -37,34 +38,29 @@ def create_app():
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    # 🔎 TEMP debug: log auth headers (remove later)
-    # @app.before_request
-    # def _dbg_auth_header():
-    #     if request.path.startswith("/api/"):
-    #         print("AUTH HEADER:", request.headers.get("Authorization"))
-
-    # Import blueprints (make sure these files exist)
+    # --- Blueprints ---
     from .auth import auth_bp
     from .admin import admin_bp
     from .courses import courses_bp
     from .assignments import assignments_bp
     from .submissions import submissions_bp
     from .instructor import instructor_bp
+    from .modules import modules_bp  # modules_bp should have url_prefix="/api" in its file
 
-    # Register blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(courses_bp, url_prefix="/api/courses")
     app.register_blueprint(assignments_bp, url_prefix="/api")
     app.register_blueprint(submissions_bp, url_prefix="/api")
     app.register_blueprint(instructor_bp, url_prefix="/api/instructor")
+    app.register_blueprint(modules_bp)  # already has its own url_prefix
 
-    # Health check route
+    # --- Health ---
     @app.get("/api/health")
     def health():
         return {"status": "ok"}, 200
 
-    # JWT error handlers
+    # --- JWT errors ---
     @jwt.unauthorized_loader
     def unauthorized_callback(reason):
         return jsonify(msg="Missing or invalid token", reason=reason), 401
@@ -72,5 +68,10 @@ def create_app():
     @jwt.invalid_token_loader
     def invalid_token_callback(reason):
         return jsonify(msg="Invalid token", reason=reason), 401
+
+    # --- DEV-ONLY: create missing tables if migrations haven't been run ---
+    if os.getenv("AUTO_CREATE_TABLES", "0") == "1":
+        with app.app_context():
+            db.create_all()
 
     return app

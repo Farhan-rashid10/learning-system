@@ -81,8 +81,9 @@ import Announcements from './components/instructor/Announcements'
 import People from './components/instructor/People'
 import Grades from './components/instructor/Grades'
 import Home from './components/instructor/Home'
-import CourseDetail from './components/instructor/CourseDetail'
 import Assignments from './components/instructor/AssignmentSubmit'
+import InstructorLayout from './components/instructor/instructorLayout'
+import CourseDetails from './components/instructor/CourseDetail'
 
 
 
@@ -96,6 +97,13 @@ return (
 <Routes>
 <Route path="/" element={<Navigate to="/login" />} />
 <Route path="/login" element={<Login />} />
+  <Route path="/instructor" element={<InstructorLayout />}>
+    <Route path="courses" element={<InstructorCourses />} />
+    <Route path="courses/:id/*" element={<CourseDetails />} />
+    <Route path="account" element={<div>Account Page</div>} />
+    <Route path="calendar" element={<div>Calendar Page</div>} />
+    <Route path="help" element={<div>Help Page</div>} />
+  </Route>
 
 
 <Route
@@ -148,14 +156,14 @@ element={
           <Route path="/admin/courses" element={<AdminCourses />} />
 
 
-        <Route path="/courses/:id" element={<CourseDetail />}>
+        {/* <Route path="/courses/:id" element={<CourseDetail />}>
         <Route index element={<Home />} />
         <Route path="assignments" element={<Assignments />} />
         <Route path="grades" element={<Grades />} />
         <Route path="people" element={<People />} />
        <Route path="announcements" element={<Announcements />} />
 
-        </Route>  
+        </Route>   */}
 
 <Route path="*" element={<div>Not found</div>} />
 </Routes>

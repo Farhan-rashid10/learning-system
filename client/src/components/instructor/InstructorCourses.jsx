@@ -247,9 +247,9 @@ export default function InstructorCourses() {
     load();
   }
 
-  // Canvas-like tile colors
+  // Card colors
   const palette = useMemo(
-    () => ["#C2410C", "#1F2937", "#0F766E", "#3B82F6", "#A855F7", "#F59E0B", "#DC2626", "#14B8A6"],
+    () => ["#C2410C","#1F2937","#0F766E","#3B82F6","#A855F7","#F59E0B","#DC2626","#14B8A6"],
     []
   );
   const pickColor = (i) => palette[i % palette.length];
@@ -304,9 +304,10 @@ export default function InstructorCourses() {
                 key={c.id}
                 color={pickColor(idx)}
                 course={c}
-                onOpen={() => navigate(`/courses/${c.id}`)}
+                // ⬇️ IMPORTANT: keep main InstructorLayout sidebar, and show course sidebar too
+                onOpen={() => navigate(`/instructor/courses/${c.id}`)}
                 onDelete={() => remove(c.id, c.title)}
-                onEdit={() => navigate(`/courses/${c.id}/edit`)} // no API change; just navigation
+                onEdit={() => navigate(`/instructor/courses/${c.id}/edit`)}
               />
             ))}
             {courses.length === 0 && (
@@ -320,12 +321,10 @@ export default function InstructorCourses() {
 }
 
 /* ------------------------------ Tile ------------------------------ */
-
 function CourseTile({ color, course, onOpen, onDelete, onEdit }) {
   const [openMenu, setOpenMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // close menu on outside click / escape
   useEffect(() => {
     function onDocClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenu(false);
@@ -377,14 +376,12 @@ function CourseTile({ color, course, onOpen, onDelete, onEdit }) {
             <button
               className="block w-full px-3 py-2 text-left hover:bg-gray-50"
               onClick={() => { setOpenMenu(false); onEdit(); }}
-              role="menuitem"
             >
               Edit
             </button>
             <button
               className="block w-full px-3 py-2 text-left text-red-600 hover:bg-red-50"
               onClick={() => { setOpenMenu(false); onDelete(); }}
-              role="menuitem"
             >
               Delete
             </button>
@@ -399,10 +396,10 @@ function CourseTile({ color, course, onOpen, onDelete, onEdit }) {
           {course.description || "No description provided."}
         </p>
 
-        {/* quick actions like Canvas icons */}
+        {/* quick actions — point to the same /instructor prefix so both sidebars show */}
         <div className="mt-4 flex items-center gap-3">
           <Link
-            to={`/courses/${course.id}/announcements`}
+            to={`/instructor/courses/${course.id}/announcements`}
             onClick={(e) => e.stopPropagation()}
             className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             title="Announcements"
@@ -412,17 +409,7 @@ function CourseTile({ color, course, onOpen, onDelete, onEdit }) {
             </svg>
           </Link>
           <Link
-            to={`/courses/${course.id}/discussions`}
-            onClick={(e) => e.stopPropagation()}
-            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            title="Discussions"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a4 4 0 01-4 4H7l-4 4V7a4 4 0 014-4h10a4 4 0 014 4z" />
-            </svg>
-          </Link>
-          <Link
-            to={`/courses/${course.id}/files`}
+            to={`/instructor/courses/${course.id}/files`}
             onClick={(e) => e.stopPropagation()}
             className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             title="Files"

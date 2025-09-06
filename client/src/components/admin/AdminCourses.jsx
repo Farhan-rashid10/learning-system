@@ -142,8 +142,7 @@ function PageShell({ children }) {
     </div>
   );
 }
-
-/* ---------- Courses Content ---------- */
+/* ---------- Courses Content (drop-in) ---------- */
 function CoursesContent() {
   const [courses, setCourses] = useState([]);
   const [title, setTitle] = useState("");
@@ -153,14 +152,20 @@ function CoursesContent() {
   const [editing, setEditing] = useState(null);
   const [openForm, setOpenForm] = useState(false);
 
+  // NEW: inline-expand state
+  const [expandedId, setExpandedId] = useState(null);
+  const [detailById, setDetailById] = useState({}); // { [id]: { loading: bool, data?: object, error?: string } }
+
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const API = "http://127.0.0.1:5000";
+  const authHeader = { Authorization: `Bearer ${localStorage.getItem("token")}` };
 
   // Fetch instructors
   const fetchInstructors = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/admin/users", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
+      const res = await fetch(`${API}/api/admin/users`, { headers: authHeader });
       const data = await res.json();
       setInstructors(data.filter((u) => u.role === "instructor"));
     } catch (err) {
@@ -171,11 +176,7 @@ function CoursesContent() {
   // Fetch courses
   const fetchCourses = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/admin/courses", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const res = await fetch(`${API}/api/admin/courses`, { headers: authHeader });
       const data = await res.json();
       setCourses(data);
     } catch (err) {
@@ -188,20 +189,13 @@ function CoursesContent() {
     e.preventDefault();
     try {
       const url = editing
-        ? `http://127.0.0.1:5000/api/admin/courses/${editing}`
-        : "http://127.0.0.1:5000/api/admin/courses";
+        ? `${API}/api/admin/courses/${editing}`
+        : `${API}/api/admin/courses`;
 
       const res = await fetch(url, {
         method: editing ? "PUT" : "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          instructor_id: instructorId,
-        }),
+        headers: { ...authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, instructor_id: instructorId }),
       });
 
       if (!res.ok) {
@@ -209,13 +203,9 @@ function CoursesContent() {
         throw new Error(err.msg || "Failed to save course");
       }
 
-      setTitle("");
-      setDescription("");
-      setInstructorId("");
-      setEditing(null);
-      setOpenForm(false);
+      setTitle(""); setDescription(""); setInstructorId("");
+      setEditing(null); setOpenForm(false);
       fetchCourses();
-
       toast({ title: editing ? "✅ Course updated" : "✅ Course created" });
     } catch (err) {
       toast({ title: "❌ Error", description: err.message });
@@ -223,18 +213,18 @@ function CoursesContent() {
   };
 
   // Delete course
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, e) => {
+    e?.stopPropagation?.();
     if (!confirm("Are you sure you want to delete this course?")) return;
 
     try {
-      const res = await fetch(
-        `http://127.0.0.1:5000/api/admin/courses/${id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
+      const res = await fetch(`${API}/api/admin/courses/${id}`, {
+        method: "DELETE",
+        headers: authHeader,
+      });
       if (!res.ok) throw new Error("Failed to delete course");
+      // collapse if the expanded one was deleted
+      if (expandedId === id) setExpandedId(null);
       fetchCourses();
       toast({ title: "🗑️ Course deleted" });
     } catch (err) {
@@ -243,12 +233,44 @@ function CoursesContent() {
   };
 
   // Edit handler (populate form)
-  const startEdit = (course) => {
+  const startEdit = (course, e) => {
+    e?.stopPropagation?.();
     setTitle(course.title);
     setDescription(course.description);
     setInstructorId(course.instructor_id);
     setEditing(course.id);
     setOpenForm(true);
+  };
+
+  // Resolve instructor display
+  const getInstructor = (courseOrDetail) => {
+    const iid = courseOrDetail.instructor_id ?? courseOrDetail?.instructor?.id;
+    const inst = instructors.find((u) => u.id === iid);
+    if (inst) return `${inst.name} (${inst.email})`;
+    return iid ? `ID ${iid}` : "—";
+  };
+
+  // Inline expand
+  const toggleExpand = async (id) => {
+    setExpandedId((cur) => (cur === id ? null : id));
+    // fetch details if not cached
+    setDetailById((m) => m[id] ? m : { ...m, [id]: { loading: true } });
+    if (!detailById[id]) {
+      try {
+        let res = await fetch(`${API}/api/admin/courses/${id}`, { headers: authHeader });
+        if (!res.ok) {
+          res = await fetch(`${API}/api/courses/${id}`, { headers: authHeader });
+        }
+        if (res.ok) {
+          const data = await res.json();
+          setDetailById((m) => ({ ...m, [id]: { loading: false, data } }));
+        } else {
+          setDetailById((m) => ({ ...m, [id]: { loading: false, error: "Failed to load details" }}));
+        }
+      } catch (e) {
+        setDetailById((m) => ({ ...m, [id]: { loading: false, error: "Failed to load details" }}));
+      }
+    }
   };
 
   useEffect(() => {
@@ -259,12 +281,12 @@ function CoursesContent() {
   return (
     <div className="max-w-6xl">
       {/* Header with Add button */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Manage Courses</h1>
         <Button onClick={() => setOpenForm(true)}>+ Add Course</Button>
       </div>
 
-      {/* Popup Form */}
+      {/* Popup Form (unchanged) */}
       <Dialog open={openForm} onOpenChange={setOpenForm}>
         <DialogContent>
           <DialogHeader>
@@ -274,20 +296,20 @@ function CoursesContent() {
             <input
               type="text"
               placeholder="Course Title"
-              className="border p-2 w-full rounded"
+              className="w-full rounded border p-2"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
             />
             <textarea
               placeholder="Course Description"
-              className="border p-2 w-full rounded"
+              className="w-full rounded border p-2"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
             />
             <select
-              className="border p-2 w-full rounded"
+              className="w-full rounded border p-2"
               value={instructorId}
               onChange={(e) => setInstructorId(e.target.value)}
               required
@@ -307,11 +329,8 @@ function CoursesContent() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setTitle("");
-                  setDescription("");
-                  setInstructorId("");
-                  setEditing(null);
-                  setOpenForm(false);
+                  setTitle(""); setDescription(""); setInstructorId("");
+                  setEditing(null); setOpenForm(false);
                 }}
               >
                 Cancel
@@ -321,27 +340,121 @@ function CoursesContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Courses list */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {courses.map((c) => (
-          <Card key={c.id} className="p-4 shadow space-y-2">
-            <h2 className="text-xl font-semibold">{c.title}</h2>
-            <p className="text-gray-600">{c.description}</p>
-            <Badge>Instructor ID: {c.instructor_id}</Badge>
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" onClick={() => startEdit(c)}>
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleDelete(c.id)}
-              >
-                Delete
-              </Button>
-            </div>
-          </Card>
-        ))}
+      {/* Courses list — CARD CLICK to expand inline */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {courses.map((c) => {
+          const expanded = expandedId === c.id;
+          const detail = detailById[c.id];
+          return (
+            <Card
+              key={c.id}
+              role="button"
+              tabIndex={0}
+              aria-expanded={expanded}
+              onClick={() => toggleExpand(c.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") toggleExpand(c.id);
+              }}
+              className="cursor-pointer space-y-2 p-4 shadow transition hover:shadow-md"
+            >
+              {/* Header row */}
+              <div className="flex items-start justify-between">
+                <div className="min-w-0">
+                  <h2 className="truncate text-xl font-semibold">{c.title}</h2>
+                  <p className="truncate text-gray-600">{c.description}</p>
+                </div>
+                <div className="ml-2 flex items-center gap-2">
+                  <Badge>Instructor ID: {c.instructor_id}</Badge>
+                  <svg
+                    className={`h-5 w-5 text-gray-500 transition-transform ${expanded ? "rotate-180" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Actions (don’t bubble) */}
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={(e) => startEdit(c, e)}>
+                  Edit
+                </Button>
+                <Button size="sm" variant="destructive" onClick={(e) => handleDelete(c.id, e)}>
+                  Delete
+                </Button>
+              </div>
+
+              {/* Inline details */}
+              {expanded && (
+                <div className="mt-3 rounded border p-3">
+                  {!detail || detail.loading ? (
+                    <div className="space-y-2">
+                      <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-gray-200" />
+                      <div className="h-20 w-full animate-pulse rounded bg-gray-200" />
+                    </div>
+                  ) : detail.error ? (
+                    <p className="text-sm text-red-600">{detail.error}</p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded border p-2">
+                          <p className="text-xs text-gray-500">Instructor</p>
+                          <p className="text-sm font-medium">{getInstructor(detail.data)}</p>
+                        </div>
+                        {detail.data.published !== undefined && (
+                          <div className="rounded border p-2">
+                            <p className="text-xs text-gray-500">Status</p>
+                            <p className="text-sm font-medium">
+                              {detail.data.published ? "Published" : "Unpublished"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {detail.data.description && (
+                        <div className="mt-3">
+                          <p className="text-xs text-gray-500">Description</p>
+                          <p className="whitespace-pre-wrap text-sm text-gray-700">
+                            {detail.data.description}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/courses/${detail.data.id}`);
+                          }}
+                        >
+                          Open Course View
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTitle(detail.data.title || "");
+                            setDescription(detail.data.description || "");
+                            setInstructorId(detail.data.instructor_id || "");
+                            setEditing(detail.data.id);
+                            setOpenForm(true);
+                          }}
+                        >
+                          Edit This Course
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

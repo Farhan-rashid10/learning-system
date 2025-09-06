@@ -2,7 +2,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db  # db is initialized in __init__.py
 
-# User model
+# --------------------------- User model ---------------------------
 class User(db.Model):
     __tablename__ = "users"
 
@@ -25,7 +25,7 @@ class User(db.Model):
         return check_password_hash(self.password_hash, pw)
 
 
-# Course model
+# --------------------------- Course model ---------------------------
 class Course(db.Model):
     __tablename__ = "courses"
 
@@ -39,7 +39,7 @@ class Course(db.Model):
     enrollments = db.relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
 
 
-# Enrollment model
+# --------------------------- Enrollment model ---------------------------
 class Enrollment(db.Model):
     __tablename__ = "enrollments"
 
@@ -55,7 +55,7 @@ class Enrollment(db.Model):
     )
 
 
-# Assignment model
+# --------------------------- Assignment model ---------------------------
 class Assignment(db.Model):
     __tablename__ = "assignments"
 
@@ -70,7 +70,7 @@ class Assignment(db.Model):
     submissions = db.relationship("Submission", back_populates="assignment", cascade="all, delete-orphan")
 
 
-# Submission model
+# --------------------------- Submission model ---------------------------
 class Submission(db.Model):
     __tablename__ = "submissions"
 
@@ -88,3 +88,80 @@ class Submission(db.Model):
     __table_args__ = (
         db.UniqueConstraint("assignment_id", "student_id", name="uq_assignment_student"),
     )
+
+
+# ======================================================================
+#                        NEW: Modules feature
+#   (added without changing the existing models above)
+# ======================================================================
+
+class Module(db.Model):
+    __tablename__ = "modules"
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(
+        db.Integer,
+        db.ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    # backref exposes: course.modules (no edit to Course class code needed)
+    course = db.relationship(
+        "Course",
+        backref=db.backref("modules", cascade="all, delete-orphan"),
+    )
+
+    items = db.relationship(
+        "ModuleItem",
+        back_populates="module",
+        cascade="all, delete-orphan",
+    )
+
+    def to_dict(self, with_items: bool = False) -> dict:
+        data = {
+            "id": self.id,
+            "course_id": self.course_id,
+            "title": self.title,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
+        if with_items:
+            # newest first
+            data["contents"] = [i.to_dict() for i in sorted(self.items, key=lambda x: x.created_at, reverse=True)]
+        return data
+
+
+class ModuleItem(db.Model):
+    __tablename__ = "module_items"
+
+    id = db.Column(db.Integer, primary_key=True)
+    module_id = db.Column(
+        db.Integer,
+        db.ForeignKey("modules.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, default="")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    module = db.relationship("Module", back_populates="items")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "module_id": self.module_id,
+            "title": self.title,
+            "body": self.body or "",
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }

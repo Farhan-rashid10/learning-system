@@ -1,17 +1,42 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt
+from flask_jwt_extended import get_jwt, jwt_required  # ⬅️ add jwt_required
 from .models import db, Course, Enrollment
 from .roles import roles_required
 
 courses_bp = Blueprint("courses", __name__)
 
+# Small helper to read JWT safely
+def _claims():
+    claims = get_jwt() or {}
+    role = claims.get("role")
+    sub = claims.get("sub")
+    try:
+        uid = int(sub) if sub is not None else None
+    except (TypeError, ValueError):
+        uid = None
+    return uid, role
+
 # -------------------------------------------------------------------
 # List courses  (GET /api/courses or /api/courses/)
-# strict_slashes=False prevents 308 redirects during CORS preflight.
+# Instructors: only their courses. Admin: all. Others: none.
 # -------------------------------------------------------------------
 @courses_bp.route("/", methods=["GET"], strict_slashes=False)
+@jwt_required()
 def list_courses():
-    courses = Course.query.all()
+    uid, role = _claims()
+
+    q = Course.query
+
+    if role == "admin":
+        courses = q.all()
+    elif role == "instructor":
+        courses = q.filter(Course.instructor_id == uid).all()
+    else:
+        # For students/HOD/etc., return empty list here.
+        # (If you want students to see enrolled courses instead,
+        #  swap this block for a join on Enrollment.)
+        courses = []
+
     return jsonify([
         {
             "id": c.id,
@@ -57,16 +82,23 @@ def create_course():
 
 # -------------------------------------------------------------------
 # Get a course by ID
+# Admin can open any; instructor only if they own it.
 # -------------------------------------------------------------------
 @courses_bp.get("/<int:course_id>")
+@jwt_required()
 def get_course(course_id):
     c = Course.query.get_or_404(course_id)
-    return jsonify(
-        id=c.id,
-        title=c.title,
-        description=c.description,
-        instructor_id=c.instructor_id,
-    )
+    uid, role = _claims()
+
+    if role == "admin" or (role == "instructor" and c.instructor_id == uid):
+        return jsonify(
+            id=c.id,
+            title=c.title,
+            description=c.description,
+            instructor_id=c.instructor_id,
+        )
+
+    return jsonify(msg="Forbidden"), 403
 
 # -------------------------------------------------------------------
 # Update a course (Admin & Instructor only)

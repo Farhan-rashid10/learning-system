@@ -84,7 +84,7 @@ export default function Login() {
             <path d="M8 5v14l11-7-11-7z" />
           </svg>
         </span>
-        <span>GAU-GradeView</span>
+        <span>Acadify</span>
       </a>
 
       {/* Card */}
